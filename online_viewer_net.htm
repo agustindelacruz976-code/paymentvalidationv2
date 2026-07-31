@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CVV / CVC Security Value Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+
+  <div class="w-full max-w-xl bg-slate-800 border border-slate-700 rounded-xl shadow-2xl p-6 md:p-8">
+    <h1 class="text-2xl font-bold mb-1 text-sky-400">CVV / CVC Calculator</h1>
+    <p class="text-xs text-slate-400 mb-6">Generates 3-digit security values using standard 3DES cryptographic parameters.</p>
+
+    <form id="cvvForm" class="space-y-4" onsubmit="handleCalculate(event)">
+      <!-- Primary Account Number -->
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+          Primary Account Number (PAN)
+        </label>
+        <input 
+          type="text" 
+          id="pan" 
+          placeholder="4000123456789010" 
+          maxlength="19"
+          required
+          class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-sky-500 font-mono"
+        />
+        <p id="luhnStatus" class="text-[11px] mt-1 text-slate-500"></p>
+      </div>
+
+      <!-- Expiration Date & Service Code Grid -->
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+            Expiration Date (YYMM)
+          </label>
+          <input 
+            type="text" 
+            id="exp" 
+            placeholder="2612" 
+            maxlength="4" 
+            required
+            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-sky-500 font-mono"
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+            Service Code
+          </label>
+          <input 
+            type="text" 
+            id="svc" 
+            placeholder="101" 
+            maxlength="3" 
+            required
+            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-sky-500 font-mono"
+          />
+        </div>
+      </div>
+
+      <!-- Issuer Keys Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+            CVK A (16 Hex Chars)
+          </label>
+          <input 
+            type="text" 
+            id="cvkA" 
+            placeholder="0123456789ABCDEF" 
+            maxlength="16" 
+            required
+            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-sky-500 font-mono uppercase"
+          />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+            CVK B (16 Hex Chars)
+          </label>
+          <input 
+            type="text" 
+            id="cvkB" 
+            placeholder="FEDCBA9876543210" 
+            maxlength="16" 
+            required
+            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-sky-500 font-mono uppercase"
+          />
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <button 
+        type="submit" 
+        class="w-full mt-4 bg-sky-600 hover:bg-sky-500 text-white font-medium py-2.5 rounded-lg transition-colors duration-150 text-sm shadow-md"
+      >
+        Calculate CVV
+      </button>
+    </form>
+
+    <!-- Results Display Section -->
+    <div id="resultBox" class="mt-6 p-4 bg-slate-900 border border-slate-700 rounded-lg hidden">
+      <div class="flex justify-between items-center">
+        <span class="text-xs uppercase tracking-wider text-slate-400 font-medium">Calculated CVV / CVC:</span>
+        <span id="cvvResult" class="text-3xl font-extrabold text-emerald-400 font-mono tracking-widest">---</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Real-time Luhn Check on PAN Input
+    document.getElementById('pan').addEventListener('input', function(e) {
+      const pan = e.target.value.replace(/\D/g, '');
+      const statusEl = document.getElementById('luhnStatus');
+      
+      if (pan.length < 13) {
+        statusEl.textContent = '';
+        return;
+      }
+
+      if (luhnCheck(pan)) {
+        statusEl.textContent = '✓ Valid PAN format (Luhn passed)';
+        statusEl.className = 'text-[11px] mt-1 text-emerald-400';
+      } else {
+        statusEl.textContent = '✗ Invalid PAN checksum';
+        statusEl.className = 'text-[11px] mt-1 text-rose-400';
+      }
+    });
+
+    // Luhn Algorithm Implementation
+    function luhnCheck(val) {
+      let checksum = 0;
+      let j = 1;
+      for (let i = val.length - 1; i >= 0; i--) {
+        let calc = 0;
+        calc = Number(val.charAt(i)) * j;
+        if (calc > 9) {
+          checksum = checksum + 1 + (calc % 10);
+        } else {
+          checksum = checksum + calc;
+        }
+
+        if (j === 1) j = 2;
+        else j = 1;
+      }
+      return (checksum % 10) === 0;
+    }
+
+    // Form Submission Handling
+    async function handleCalculate(event) {
+      event.preventDefault();
+      
+      const payload = {
+        pan: document.getElementById('pan').value.trim(),
+        exp: document.getElementById('exp').value.trim(),
+        svc: document.getElementById('svc').value.trim(),
+        cvk_a: document.getElementById('cvkA').value.trim(),
+        cvk_b: document.getElementById('cvkB').value.trim()
+      };
+
+      // Connect to Backend API (e.g., Python Flask or Node.js server)
+      try {
+        /* 
+        const response = await fetch('/api/calculate-cvv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        document.getElementById('cvvResult').textContent = data.cvv;
+        */
+
+        // Visual feedback placeholder for UI test
+        document.getElementById('resultBox').classList.remove('hidden');
+        document.getElementById('cvvResult').textContent = "842"; 
+      } catch (err) {
+        alert("Error connecting to server endpoint.");
+      }
+    }
+  </script>
+</body>
+</html>
