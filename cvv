@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Hello, World!</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+      <h1 class="title">Hello World!</h1>
+      <p id="currentTime"></p>
+      <script src="script.js"></script>
+  </body>
+</html><!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CVV / CVC Security Value Calculator & Generator</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <!-- CryptoJS para el cifrado 3DES -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <style>
+    /* Custom Scrollbar for Textarea */
+    textarea::-webkit-scrollbar {
+      width: 8px;
+    }
+    textarea::-webkit-scrollbar-track {
+      background: #020617;
+      border-radius: 6px;
+    }
+    textarea::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 6px;
+    }
+    textarea::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+  </style>
+</head>
+<body class="font-sans antialiased text-slate-200 bg-slate-950 min-h-screen flex items-center justify-center p-4 md:p-8 selection:bg-sky-500 selection:text-white">
+
+  <!-- Background Decorative Subtle Glows -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none">
+    <div class="absolute -top-40 -left-40 w-96 h-96 bg-sky-600/10 rounded-full blur-3xl"></div>
+    <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl"></div>
+  </div>
+
+  <!-- ==================== TARJETA DE AUTENTICACIÓN (LOGIN / REGISTRO) ==================== -->
+  <div id="authScreen" class="relative w-full max-w-md bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl shadow-black/50 p-6 md:p-8 transition-all">
+    
+    <!-- BRANDING HEADER -->
+    <div class="flex items-center space-x-3 mb-6">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold text-slate-100 tracking-tight">Payment Tools</h1>
+        <p class="text-xs text-slate-400">Enterprise Security Suite</p>
+      </div>
+    </div>
+
+    <!-- PESTAÑAS PARA CAMBIAR ENTRE LOGIN Y REGISTRO -->
+    <div class="flex bg-slate-950/60 p-1 rounded-xl border border-slate-800/80 mb-6">
+      <button 
+        id="tabLogin" 
+        onclick="switchAuthTab('login')" 
+        class="w-1/2 py-2 text-center text-xs font-semibold rounded-lg text-sky-400 bg-slate-800/80 shadow-sm transition-all duration-200 focus:outline-none"
+      >
+        Iniciar Sesión
+      </button>
+      <button 
+        id="tabRegister" 
+        onclick="switchAuthTab('register')" 
+        class="w-1/2 py-2 text-center text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 transition-all duration-200 focus:outline-none"
+      >
+        Crear Cuenta
+      </button>
+    </div>
+
+    <!-- FORMULARIO DE INICIO DE SESIÓN -->
+    <form id="loginForm" class="space-y-4" onsubmit="handleLogin(event)">
+      <div>
+        <h2 class="text-lg font-bold text-slate-100">Bienvenido</h2>
+        <p class="text-xs text-slate-400">Ingresa tus credenciales para acceder a la plataforma.</p>
+      </div>
+
+      <div class="space-y-1">
+        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Usuario</label>
+        <div class="relative">
+          <input 
+            type="text" 
+            id="loginUsername" 
+            placeholder="admin" 
+            required
+            class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all"
+          />
+        </div>
+      </div>
+
+      <div class="space-y-1">
+        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Contraseña</label>
+        <input 
+          type="password" 
+          id="loginPassword" 
+          placeholder="••••••••" 
+          required
+          class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all"
+        />
+      </div>
+
+      <!-- CAPTCHA LOGIN -->
+      <div class="space-y-1.5">
+        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Verificación CAPTCHA</label>
+        <div class="flex items-center space-x-2">
+          <div id="loginCaptchaBox" class="flex-1 bg-slate-950 border border-slate-800 text-sky-400 font-mono font-bold tracking-widest text-base py-2 px-3 rounded-xl select-none line-through italic decoration-rose-500/80 text-center shadow-inner">
+            000000
+          </div>
+          <button 
+            type="button" 
+            onclick="generateCaptcha()" 
+            class="p-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 rounded-xl text-slate-300 border border-slate-700/50 transition-all"
+            title="Nuevo código"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+          </button>
+        </div>
+        <input 
+          type="text" 
+          id="loginCaptchaInput" 
+          placeholder="Ingresa el código numérico" 
+          required
+          maxlength="6"
+          class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all font-mono"
+        />
+      </div>
+
+      <p id="loginMessage" class="text-xs hidden p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20"></p>
+
+      <button 
+        type="submit" 
+        class="w-full mt-2 bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-400 hover:to-sky-500 text-white font-semibold py-2.5 rounded-xl transition-all duration-150 text-sm shadow-lg shadow-sky-500/25 active:scale-[0.99]"
+      >
+        Ingresar
+      </button>
+    </form>
+
+    <!-- FORMULARIO DE REGISTRO DE CUENTA -->
+    <form id="registerForm" class="space-y-4 hidden" onsubmit="handleRegister(event)">
+      <div>
+        <h2 class="text-lg font-bold text-slate-100">Registro</h2>
+        <p class="text-xs text-slate-400">Crea una cuenta para comenzar a usar la suite.</p>
+      </div>
+
+      <div class="space-y-1">
+        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Nuevo Usuario</label>
+        <input 
+          type="text" 
+          id="regUsername" 
+          placeholder="Elige un nombre de usuario" 
+          required
+          class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+        />
+      </div>
+
+      <div class="space-y-1">
+        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Contraseña</label>
+        <input 
+          type="password" 
+          id="regPassword" 
+          placeholder="Mínimo 4 caracteres" 
+          required
+          minlength="4"
+          class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+        />
+      </div>
+
+      <div class="space-y-1">
+        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Confirmar Contraseña</label>
+        <input 
+          type="password" 
+          id="regPasswordConfirm" 
+          placeholder="Repite la contraseña" 
+          required
+          class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+        />
+      </div>
+
+      <!-- CAPTCHA REGISTRO -->
+      <div class="space-y-1.5">
+        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Verificación CAPTCHA</label>
+        <div class="flex items-center space-x-2">
+          <div id="regCaptchaBox" class="flex-1 bg-slate-950 border border-slate-800 text-sky-400 font-mono font-bold tracking-widest text-base py-2 px-3 rounded-xl select-none line-through italic decoration-rose-500/80 text-center shadow-inner">
+            000000
+          </div>
+          <button 
+            type="button" 
+            onclick="generateCaptcha()" 
+            class="p-2.5 bg-slate-800 hover:bg-slate-700 active:scale-95 rounded-xl text-slate-300 border border-slate-700/50 transition-all"
+            title="Nuevo código"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+          </button>
+        </div>
+        <input 
+          type="text" 
+          id="regCaptchaInput" 
+          placeholder="Ingresa el código numérico" 
+          required
+          maxlength="6"
+          class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
+        />
+      </div>
+
+      <p id="registerMessage" class="text-xs hidden p-2.5 rounded-lg border"></p>
+
+      <button 
+        type="submit" 
+        class="w-full mt-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-semibold py-2.5 rounded-xl transition-all duration-150 text-sm shadow-lg shadow-emerald-500/25 active:scale-[0.99]"
+      >
+        Crear Cuenta
+      </button>
+    </form>
+  </div>
+
+
+  <!-- ==================== APLICACIÓN PRINCIPAL (OCULTA POR DEFECTO) ==================== -->
+  <div id="appScreen" class="relative w-full max-w-2xl bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl shadow-black/50 p-6 md:p-8 hidden transition-all">
+    
+    <!-- ENCABEZADO -->
+    <div class="flex flex-wrap justify-between items-center gap-4 pb-6 mb-6 border-b border-slate-800/80">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold text-slate-100 tracking-tight">Payment Tools Suite</h1>
+          <div class="flex items-center space-x-2 mt-0.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <p class="text-xs text-slate-400">Usuario: <span id="currentUserDisplay" class="text-emerald-400 font-semibold font-mono"></span></p>
+          </div>
+        </div>
+      </div>
+      <button onclick="handleLogout()" class="inline-flex items-center space-x-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-3.5 py-2 rounded-xl border border-slate-700/50 transition-all duration-150 active:scale-95">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+        <span>Cerrar Sesión</span>
+      </button>
+    </div>
+
+    <!-- PESTAÑAS PRINCIPALES DE LA HERRAMIENTA -->
+    <div class="flex bg-slate-950/60 p-1 rounded-xl border border-slate-800/80 mb-6">
+      <button 
+        id="toolTabCvv" 
+        onclick="switchToolTab('cvv')" 
+        class="w-1/2 py-2.5 text-center text-xs font-bold rounded-lg text-sky-400 bg-slate-800/80 shadow-sm transition-all duration-200 focus:outline-none flex items-center justify-center space-x-2"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
+        <span>CVV / CVC Calculator</span>
+      </button>
+      <button 
+        id="toolTabGen" 
+        onclick="switchToolTab('generator')" 
+        class="w-1/2 py-2.5 text-center text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all duration-200 focus:outline-none flex items-center justify-center space-x-2"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/><line x1="12" x2="12" y1="15" y2="15"/></svg>
+        <span>Card Generator</span>
+      </button>
+    </div>
+
+    <!-- SECCIÓN 1: CALCULADORA CVV -->
+    <div id="sectionCvv">
+      <p class="text-xs text-slate-400 mb-6 bg-slate-950/40 p-3 rounded-xl border border-slate-800/50 flex items-center space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-sky-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+        <span>Generates 3-digit security values using standard 3DES cryptographic algorithms.</span>
+      </p>
+
+      <form id="cvvForm" class="space-y-4" onsubmit="handleCalculate(event)">
+        <!-- Primary Account Number -->
+        <div class="space-y-1">
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            Primary Account Number (PAN)
+          </label>
+          <input 
+            type="text" 
+            id="pan" 
+            placeholder="4000123456789010" 
+            maxlength="19"
+            required
+            class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all font-mono"
+          />
+          <p id="luhnStatus" class="text-[11px] mt-1 text-slate-500 font-mono"></p>
+        </div>
+
+        <!-- Expiration Date & Service Code Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="space-y-1">
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Expiration Date (YYMM)
+            </label>
+            <input 
+              type="text" 
+              id="exp" 
+              placeholder="2612" 
+              maxlength="4" 
+              required
+              class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all font-mono"
+            />
+          </div>
+          <div class="space-y-1">
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Service Code
+            </label>
+            <input 
+              type="text" 
+              id="svc" 
+              placeholder="101" 
+              maxlength="3" 
+              required
+              class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all font-mono"
+            />
+          </div>
+        </div>
+
+        <!-- Issuer Keys Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+          <div class="space-y-1">
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              CVK A (16 Hex Chars)
+            </label>
+            <input 
+              type="text" 
+              id="cvkA" 
+              placeholder="0123456789ABCDEF" 
+              maxlength="16" 
+              required
+              class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all font-mono uppercase"
+            />
+          </div>
+          <div class="space-y-1">
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              CVK B (16 Hex Chars)
+            </label>
+            <input 
+              type="text" 
+              id="cvkB" 
+              placeholder="FEDCBA9876543210" 
+              maxlength="16" 
+              required
+              class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all font-mono uppercase"
+            />
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button 
+          type="submit" 
+          class="w-full mt-3 bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-400 hover:to-sky-500 text-white font-semibold py-2.5 rounded-xl transition-all duration-150 text-sm shadow-lg shadow-sky-500/25 active:scale-[0.99]"
+        >
+          Calculate CVV
+        </button>
+      </form>
+
+      <!-- Results Display Section -->
+      <div id="resultBox" class="mt-6 p-4 bg-slate-950 border border-emerald-500/30 rounded-xl hidden shadow-lg shadow-emerald-500/5">
+        <div class="flex justify-between items-center">
+          <span class="text-xs uppercase tracking-wider text-slate-400 font-bold">Calculated CVV / CVC:</span>
+          <span id="cvvResult" class="text-3xl font-extrabold text-emerald-400 font-mono tracking-widest drop-shadow-[0_0_12px_rgba(52,211,153,0.3)]">---</span>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- SECCIÓN 2: GENERADOR TIPO NAMSO GEN -->
+    <div id="sectionGenerator" class="hidden">
+      <p class="text-xs text-slate-400 mb-6 bg-slate-950/40 p-3 rounded-xl border border-slate-800/50 flex items-center space-x-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+        <span>Generates test credit card numbers with valid Luhn checksums based on a BIN pattern.</span>
+      </p>
+
+      <form class="space-y-4" onsubmit="handleGenerateCards(event)">
+        <!-- BIN Input -->
+        <div class="space-y-1">
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            BIN / Card Pattern
+          </label>
+          <input 
+            type="text" 
+            id="genBin" 
+            placeholder="453590xxxxxxxxxx or 510510" 
+            required
+            class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
+          />
+          <p class="text-[11px] text-slate-500">Use 'x' or 'x' for random digits (e.g. 453590xxxxxxxxxx)</p>
+        </div>
+
+        <!-- Parametros del Generador -->
+        <div class="grid grid-cols-3 gap-3">
+          <div class="space-y-1">
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Month</label>
+            <select id="genMonth" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono">
+              <option value="rnd">Random</option>
+              <option value="01">01</option><option value="02">02</option><option value="03">03</option>
+              <option value="04">04</option><option value="05">05</option><option value="06">06</option>
+              <option value="07">07</option><option value="08">08</option><option value="09">09</option>
+              <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+            </select>
+          </div>
+          <div class="space-y-1">
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Year</label>
+            <select id="genYear" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono">
+              <option value="rnd">Random</option>
+              <option value="2026">2026</option><option value="2027">2027</option><option value="2028">2028</option>
+              <option value="2029">2029</option><option value="2030">2030</option><option value="2031">2031</option>
+            </select>
+          </div>
+          <div class="space-y-1">
+            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">CVV / CVC</label>
+            <input 
+              type="text" 
+              id="genCvv" 
+              placeholder="rnd" 
+              maxlength="4"
+              class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
+            />
+          </div>
+        </div>
+
+        <!-- Cantidad -->
+        <div class="space-y-1">
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Quantity</label>
+          <input 
+            type="number" 
+            id="genQuantity" 
+            value="10" 
+            min="1" 
+            max="100" 
+            class="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-mono"
+          />
+        </div>
+
+        <button 
+          type="submit" 
+          class="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-semibold py-2.5 rounded-xl transition-all duration-150 text-sm shadow-lg shadow-emerald-500/25 active:scale-[0.99]"
+        >
+          Generate Cards
+        </button>
+      </form>
+
+      <!-- Salida de tarjetas generadas -->
+      <div id="genResultBox" class="mt-6 hidden">
+        <div class="flex justify-between items-center mb-2">
+          <label class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Generated Output:</label>
+          <button 
+            type="button" 
+            onclick="copyGeneratedCards()" 
+            class="inline-flex items-center space-x-1 text-xs bg-slate-800 hover:bg-slate-700 text-emerald-400 font-semibold px-3 py-1.5 rounded-lg border border-slate-700/50 transition-all active:scale-95"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            <span>Copy All</span>
+          </button>
+        </div>
+        <textarea 
+          id="genOutput" 
+          rows="8" 
+          readonly
+          class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs text-emerald-400 font-mono focus:outline-none leading-relaxed select-all"
+        ></textarea>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let currentCaptcha = "";
+
+    window.onload = function() {
+      if (!localStorage.getItem('appUsers')) {
+        const defaultUsers = { "admin": "123456" };
+        localStorage.setItem('appUsers', JSON.stringify(defaultUsers));
+      }
+      generateCaptcha();
+    };
+
+    function generateCaptcha() {
+      currentCaptcha = Math.floor(100000 + Math.random() * 900000).toString();
+      document.getElementById('loginCaptchaBox').textContent = currentCaptcha;
+      document.getElementById('regCaptchaBox').textContent = currentCaptcha;
+    }
+
+    // --- AUTENTICACIÓN TABS ---
+    function switchAuthTab(tab) {
+      const loginForm = document.getElementById('loginForm');
+      const registerForm = document.getElementById('registerForm');
+      const tabLogin = document.getElementById('tabLogin');
+      const tabRegister = document.getElementById('tabRegister');
+
+      hideMessage('loginMessage');
+      hideMessage('registerMessage');
+
+      if (tab === 'login') {
+        loginForm.classList.remove('hidden');
+        registerForm.classList.add('hidden');
+
+        tabLogin.className = "w-1/2 py-2 text-center text-xs font-semibold rounded-lg text-sky-400 bg-slate-800/80 shadow-sm transition-all duration-200 focus:outline-none";
+        tabRegister.className = "w-1/2 py-2 text-center text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 transition-all duration-200 focus:outline-none";
+      } else {
+        loginForm.classList.add('hidden');
+        registerForm.classList.remove('hidden');
+
+        tabRegister.className = "w-1/2 py-2 text-center text-xs font-semibold rounded-lg text-emerald-400 bg-slate-800/80 shadow-sm transition-all duration-200 focus:outline-none";
+        tabLogin.className = "w-1/2 py-2 text-center text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 transition-all duration-200 focus:outline-none";
+      }
+      generateCaptcha();
+    }
+
+    // --- HERRAMIENTAS TABS (CALCULADORA VS GENERADOR) ---
+    function switchToolTab(tool) {
+      const sectionCvv = document.getElementById('sectionCvv');
+      const sectionGenerator = document.getElementById('sectionGenerator');
+      const toolTabCvv = document.getElementById('toolTabCvv');
+      const toolTabGen = document.getElementById('toolTabGen');
+
+      if (tool === 'cvv') {
+        sectionCvv.classList.remove('hidden');
+        sectionGenerator.classList.add('hidden');
+
+        toolTabCvv.className = "w-1/2 py-2.5 text-center text-xs font-bold rounded-lg text-sky-400 bg-slate-800/80 shadow-sm transition-all duration-200 focus:outline-none flex items-center justify-center space-x-2";
+        toolTabGen.className = "w-1/2 py-2.5 text-center text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all duration-200 focus:outline-none flex items-center justify-center space-x-2";
+      } else {
+        sectionCvv.classList.add('hidden');
+        sectionGenerator.classList.remove('hidden');
+
+        toolTabGen.className = "w-1/2 py-2.5 text-center text-xs font-bold rounded-lg text-emerald-400 bg-slate-800/80 shadow-sm transition-all duration-200 focus:outline-none flex items-center justify-center space-x-2";
+        toolTabCvv.className = "w-1/2 py-2.5 text-center text-xs font-bold rounded-lg text-slate-400 hover:text-slate-200 transition-all duration-200 focus:outline-none flex items-center justify-center space-x-2";
+      }
+    }
+
+    // AUTH HANDLERS
+    function handleRegister(event) {
+      event.preventDefault();
+      const user = document.getElementById('regUsername').value.trim();
+      const pass = document.getElementById('regPassword').value.trim();
+      const passConfirm = document.getElementById('regPasswordConfirm').value.trim();
+      const captchaEntered = document.getElementById('regCaptchaInput').value.trim();
+
+      if (captchaEntered !== currentCaptcha) {
+        showMessage('registerMessage', '✗ Código CAPTCHA incorrecto.', 'text-rose-400 bg-rose-500/10 border-rose-500/20');
+        generateCaptcha();
+        document.getElementById('regCaptchaInput').value = "";
+        return;
+      }
+
+      if (pass !== passConfirm) {
+        showMessage('registerMessage', '✗ Las contraseñas no coinciden.', 'text-rose-400 bg-rose-500/10 border-rose-500/20');
+        generateCaptcha();
+        return;
+      }
+
+      const users = JSON.parse(localStorage.getItem('appUsers') || '{}');
+
+      if (users[user]) {
+        showMessage('registerMessage', '✗ El nombre de usuario ya existe.', 'text-rose-400 bg-rose-500/10 border-rose-500/20');
+        generateCaptcha();
+        return;
+      }
+
+      users[user] = pass;
+      localStorage.setItem('appUsers', JSON.stringify(users));
+
+      showMessage('registerMessage', '✓ Cuenta creada con éxito. Ya puedes iniciar sesión.', 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20');
+      document.getElementById('registerForm').reset();
+      generateCaptcha();
+
+      setTimeout(() => {
+        switchAuthTab('login');
+        document.getElementById('loginUsername').value = user;
+      }, 1500);
+    }
+
+    function handleLogin(event) {
+      event.preventDefault();
+      const user = document.getElementById('loginUsername').value.trim();
+      const pass = document.getElementById('loginPassword').value.trim();
+      const captchaEntered = document.getElementById('loginCaptchaInput').value.trim();
+
+      if (captchaEntered !== currentCaptcha) {
+        showMessage('loginMessage', '✗ Código CAPTCHA incorrecto.', 'text-rose-400 bg-rose-500/10 border-rose-500/20');
+        generateCaptcha();
+        document.getElementById('loginCaptchaInput').value = "";
+        return;
+      }
+
+      const users = JSON.parse(localStorage.getItem('appUsers') || '{}');
+
+      if (users[user] && users[user] === pass) {
+        hideMessage('loginMessage');
+        document.getElementById('authScreen').classList.add('hidden');
+        document.getElementById('appScreen').classList.remove('hidden');
+        document.getElementById('currentUserDisplay').textContent = user;
+      } else {
+        showMessage('loginMessage', '✗ Usuario o contraseña incorrectos.', 'text-rose-400 bg-rose-500/10 border-rose-500/20');
+        generateCaptcha();
+      }
+    }
+
+    function handleLogout() {
+      document.getElementById('appScreen').classList.add('hidden');
+      document.getElementById('authScreen').classList.remove('hidden');
+      document.getElementById('loginForm').reset();
+      switchAuthTab('login');
+    }
+
+    function showMessage(elementId, text, colorClass) {
+      const el = document.getElementById(elementId);
+      el.textContent = text;
+      el.className = `text-xs mt-2 p-2.5 rounded-lg ${colorClass}`;
+      el.classList.remove('hidden');
+    }
+
+    function hideMessage(elementId) {
+      document.getElementById(elementId).classList.add('hidden');
+    }
+
+    // --- LÓGICA DEL GENERADOR TIPO NAMSO GEN ---
+    function handleGenerateCards(event) {
+      event.preventDefault();
+
+      let binInput = document.getElementById('genBin').value.trim().toLowerCase();
+      const selectedMonth = document.getElementById('genMonth').value;
+      const selectedYear = document.getElementById('genYear').value;
+      let customCvv = document.getElementById('genCvv').value.trim();
+      const qty = parseInt(document.getElementById('genQuantity').value) || 10;
+
+      // Reemplazar espacios o guiones
+      binInput = binInput.replace(/[\s-]/g, '');
+
+      let results = [];
+
+      for (let i = 0; i < qty; i++) {
+        // 1. Generar número de tarjeta con checksum de Luhn
+        const cardNumber = generateValidCardNumber(binInput);
+
+        // 2. Generar Mes
+        let month = selectedMonth;
+        if (month === 'rnd') {
+          month = Math.floor(Math.random() * 12 + 1).toString().padStart(2, '0');
+        }
+
+        // 3. Generar Año
+        let year = selectedYear;
+        if (year === 'rnd') {
+          year = (Math.floor(Math.random() * 6) + 2026).toString(); // 2026-2031
+        }
+
+        // 4. Generar CVV
+        let cvv = customCvv;
+        if (!cvv || cvv.toLowerCase() === 'rnd') {
+          const cvvLen = binInput.startsWith('3') ? 4 : 3; // Amex usa 4 dígitos
+          cvv = Math.floor(Math.pow(10, cvvLen - 1) + Math.random() * (Math.pow(10, cvvLen) - Math.pow(10, cvvLen - 1))).toString();
+        }
+
+        results.push(`${cardNumber}|${month}|${year}|${cvv}`);
+      }
+
+      document.getElementById('genOutput').value = results.join('\n');
+      document.getElementById('genResultBox').classList.remove('hidden');
+    }
+
+    function generateValidCardNumber(pattern) {
+      // Determinar la longitud objetivo (15 para Amex, 16 para la mayoría)
+      const targetLength = pattern.startsWith('3') ? 15 : 16;
+      
+      // Construir la base hasta targetLength - 1
+      let base = '';
+      for (let i = 0; i < targetLength - 1; i++) {
+        if (i < pattern.length && pattern[i] !== 'x') {
+          base += pattern[i];
+        } else {
+          base += Math.floor(Math.random() * 10).toString();
+        }
+      }
+
+      // Calcular el último dígito de verificación usando el algoritmo de Luhn
+      let checkDigit = getLuhnCheckDigit(base);
+      return base + checkDigit;
+    }
+
+    function getLuhnCheckDigit(numberString) {
+      let sum = 0;
+      let isEven = true; // Empieza en true porque estamos agregando un dígito al final
+
+      for (let i = numberString.length - 1; i >= 0; i--) {
+        let digit = parseInt(numberString.charAt(i), 10);
+
+        if (isEven) {
+          digit *= 2;
+          if (digit > 9) digit -= 9;
+        }
+
+        sum += digit;
+        isEven = !isEven;
+      }
+
+      return (10 - (sum % 10)) % 10;
+    }
+
+    function copyGeneratedCards() {
+      const copyText = document.getElementById('genOutput');
+      copyText.select();
+      copyText.setSelectionRange(0, 99999);
+      navigator.clipboard.writeText(copyText.value);
+      alert("¡Tarjetas copiadas al portapapeles!");
+    }
+
+    // --- CALCULADORA CVV & LUHN ---
+    document.getElementById('pan').addEventListener('input', function(e) {
+      const pan = e.target.value.replace(/\D/g, '');
+      const statusEl = document.getElementById('luhnStatus');
+      
+      if (pan.length < 13) {
+        statusEl.textContent = '';
+        return;
+      }
+
+      if (luhnCheck(pan)) {
+        statusEl.textContent = '✓ Valid PAN format (Luhn passed)';
+        statusEl.className = 'text-[11px] mt-1 text-emerald-400 font-mono';
+      } else {
+        statusEl.textContent = '✗ Invalid PAN checksum';
+        statusEl.className = 'text-[11px] mt-1 text-rose-400 font-mono';
+      }
+    });
+
+    function luhnCheck(val) {
+      let checksum = 0;
+      let j = 1;
+      for (let i = val.length - 1; i >= 0; i--) {
+        let calc = Number(val.charAt(i)) * j;
+        if (calc > 9) {
+          checksum += 1 + (calc % 10);
+        } else {
+          checksum += calc;
+        }
+        j = j === 1 ? 2 : 1;
+      }
+      return (checksum % 10) === 0;
+    }
+
+    function calculateCVVAlgorithm(pan, exp, svc, cvkA, cvkB) {
+      let dataBlock = (pan + exp + svc).padEnd(32, '0').slice(0, 32);
+      const fullKeyHex = cvkA + cvkB + cvkA;
+      const key = CryptoJS.enc.Hex.parse(fullKeyHex);
+
+      const block1 = CryptoJS.enc.Hex.parse(dataBlock.slice(0, 16));
+      const cvkA_Key = CryptoJS.enc.Hex.parse(cvkA);
+
+      const enc1 = CryptoJS.DES.encrypt(block1, cvkA_Key, { mode: CryptoJS.mode.ECB, padding: CryptoJS.pad.NoPadding });
+      const xorBlock = CryptoJS.enc.Hex.parse(
+        (BigInt('0x' + enc1.ciphertext.toString()) ^ BigInt('0x' + dataBlock.slice(16, 32))).toString(16).padStart(16, '0')
+      );
+
+      const finalCipher = CryptoJS.TripleDES.encrypt(xorBlock, key, { mode: CryptoJS.mode.ECB, padding: CryptoJS.pad.NoPadding });
+      const hexResult = finalCipher.ciphertext.toString().toUpperCase();
+
+      let digits = '';
+      for (let char of hexResult) {
+        if (!isNaN(char)) digits += char;
+      }
+      for (let char of hexResult) {
+        if (isNaN(char)) {
+          const num = char.charCodeAt(0) - 55 - 10;
+          digits += num.toString();
+        }
+      }
+
+      return digits.slice(0, 3);
+    }
+
+    function handleCalculate(event) {
+      event.preventDefault();
+      
+      const pan = document.getElementById('pan').value.replace(/\D/g, '');
+      const exp = document.getElementById('exp').value.trim();
+      const svc = document.getElementById('svc').value.trim();
+      const cvkA = document.getElementById('cvkA').value.trim().toUpperCase();
+      const cvkB = document.getElementById('cvkB').value.trim().toUpperCase();
+
+      if (cvkA.length !== 16 || cvkB.length !== 16) {
+        alert("Las claves CVK A y CVK B deben tener exactamente 16 caracteres hexadecimales.");
+        return;
+      }
+
+      try {
+        const cvv = calculateCVVAlgorithm(pan, exp, svc, cvkA, cvkB);
+        document.getElementById('resultBox').classList.remove('hidden');
+        document.getElementById('cvvResult').textContent = cvv;
+      } catch (err) {
+        alert("Error al realizar el cálculo criptográfico.");
+        console.error(err);
+      }
+    }
+  </script>
+</body>
+</html>
